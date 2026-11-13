@@ -1,2 +1,5 @@
 # Keep the hand-authored stylesheet in GitHub's language statistics.
 styles.css linguist-generated=false
+
+# The application scripts are hand-authored, even where compact formatting is used.
+*.js linguist-generated=false
