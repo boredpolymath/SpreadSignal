@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#282828" />
+    <meta name="description" content="A transparent prototype for exploring public-health surveillance observations." />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>SpreadSignal</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to workspace</a>
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand"><img class="brand-lockup" src="spreadsignal-lockup.svg" alt="SpreadSignal — Outbreak Intelligence" /></div>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav>
+        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌁</span><span class="nav-label" data-mobile-label="Observe">Dashboard</span></button>
+        <button class="nav-item" data-view="explore"><span class="nav-icon">⌕</span><span class="nav-label" data-mobile-label="Explore">Data explorer</span></button>
+        <button class="nav-item" data-view="sources"><span class="nav-icon">◫</span><span class="nav-label" data-mobile-label="Verify">Sources & quality</span></button>
+        <button class="nav-item" data-view="lab"><span class="nav-icon">∿</span><span class="nav-label" data-mobile-label="Analyze">Early warning lab</span><em>Analyze</em></button>
+        <button class="nav-item" data-view="plans"><span class="nav-icon">□</span><span class="nav-label" data-mobile-label="Plan">Preparedness plans</span><em>Plan</em></button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="connection"><i></i><span id="connectionText">Online · cached</span></div>
+        <p>Last successful sync<br><b id="lastSync">Today, 09:30 ET</b></p>
+        <button class="help-button" id="aboutButton">About this prototype <span>↗</span></button>
+      </div>
+    </aside>
+
+    <div class="app-shell">
+      <header class="mobile-brandbar"><img src="spreadsignal-lockup.svg" alt="SpreadSignal — Outbreak Intelligence" /></header>
+      <header class="topbar">
+        <button class="menu-button" aria-label="Open navigation">☰</button>
+        <div class="crumb"><span>Surveillance</span><b>/</b><strong id="crumbTitle">Regional dashboard</strong></div>
+      </header>
+
+      <main id="main">
+        <section class="dashboard-view view active" id="dashboard">
+          <div class="page-head">
+            <div>
+              <p class="eyebrow">SURVEILLANCE DASHBOARD</p>
+              <h1>What is happening in <span id="regionTitle">United States</span>?</h1>
+              <p class="lede">Observed signals, source context, and recent changes — without a risk prediction.</p>
+            </div>
+            <button class="secondary export-button" id="exportButton">⇩ Export view</button>
+          </div>
+
+          <section class="filter-bar" aria-label="Dataset filters">
+            <label>Region<select id="regionSelect" data-region-select data-default="United States"></select></label>
+            <label>Pathogen<select id="pathogenSelect"><optgroup label="Standardized activity monitoring"><option>COVID-19</option><option>Influenza A</option><option>RSV</option></optgroup><optgroup label="Site-level detection monitoring"><option>Measles</option><option>Avian influenza A (H5)</option><option>Mpox</option></optgroup><optgroup label="Coverage validation pending"><option>Influenza B</option><option>Norovirus</option><option>Enterovirus D68</option><option>Poliovirus</option><option>Adenovirus</option><option>Candida auris</option><option>Antimicrobial resistance markers</option></optgroup></select></label>
+            <label>Time period<select id="periodSelect"><option>Last 12 weeks</option><option>Last 8 weeks</option><option>Last 6 months</option></select></label>
+            <div class="filter-meta"><span class="live-dot"></span><b>Illustrative dataset</b><small>Updated 2 hours ago</small></div>
+          </section>
+
+          <section class="data-context" aria-label="Data context">
+            <div class="context-status pathogen-notice activity" id="pathogenNotice" aria-live="polite"><span class="notice-icon">✓</span><div class="context-copy"><p class="context-label">DATA AVAILABILITY</p><p><b id="pathogenMode">Standardized activity monitoring</b><span id="pathogenModeCopy">Comparable illustrative activity views are available for this pathogen.</span></p></div></div>
+            <div class="context-guidance"><span class="notice-icon">i</span><div class="context-copy"><p class="context-label">INTERPRETATION</p><p><b>Read this view as evidence, not a forecast.</b><span>Measurements below are examples for product testing and do not describe current local conditions.</span></p><button class="text-button" id="interpretationButton">How to interpret</button></div></div>
+          </section>
+
+          <section class="metric-grid" aria-label="Latest indicators">
+            <article class="metric-card selected" data-indicator="Wastewater concentration">
+              <div class="card-kicker"><span>OBSERVED</span><button aria-label="Indicator definition" class="definition">?</button></div>
+              <h2 id="wastewaterMetricTitle">SARS-CoV-2 wastewater activity</h2>
+              <div class="metric-value"><span id="wastewaterMetricValue">8.4</span> <small id="wastewaterMetricUnit">activity level</small></div>
+              <div class="metric-trend up" id="wastewaterTrend">↑ 18% <span>from prior 7 days</span></div>
+              <div class="sparkline orange"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <footer id="wastewaterCoverage">Coverage: 9 of 12 sites <b>•</b> 2 days old</footer>
+            </article>
+            <article class="metric-card" data-indicator="Test positivity">
+              <div class="card-kicker"><span>OBSERVED</span><button aria-label="Indicator definition" class="definition">?</button></div>
+              <h2>Test positivity</h2>
+              <div class="metric-value">6.4<small>%</small></div>
+              <div class="metric-trend up">↑ 0.8 pp <span>from prior week</span></div>
+              <div class="sparkline red"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <footer>Reporting week ended Nov 7 <b>•</b> 6 days old</footer>
+            </article>
+            <article class="metric-card" data-indicator="Hospital admissions">
+              <div class="card-kicker"><span>OBSERVED</span><button aria-label="Indicator definition" class="definition">?</button></div>
+              <h2>Hospital admissions</h2>
+              <div class="metric-value">24 <small>per 100k</small></div>
+              <div class="metric-trend down">↓ 4% <span>from prior week</span></div>
+              <div class="sparkline teal"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <footer>Reported through Nov 4 <b>•</b> 9 days old</footer>
+            </article>
+          </section>
+
+          <section class="main-grid">
+            <article class="panel chart-panel">
+              <header class="panel-header trend-header">
+                <div class="trend-title"><div class="trend-kicker"><p class="eyebrow">TREND EXPLORER</p><span class="observed-chip">Observed data</span></div><h2 id="chartHeading">SARS-CoV-2 wastewater activity</h2><p id="chartSubline">Weekly median · standardized SARS-CoV-2 activity level</p></div>
+              </header>
+              <div class="trend-toolbar"><div class="toolbar-group"><span class="toolbar-label">Time range</span><div class="range-group" aria-label="Chart time range"><button class="range active">12W</button><button class="range">6M</button><button class="range">1Y</button></div></div><button class="secondary compact" id="compareButton">⇄ Compare regions</button></div>
+              <div class="chart-legend"><div class="legend-items"><span><i class="legend observed"></i>Observed value</span><span><i class="legend missing"></i>Incomplete coverage</span></div><span class="chart-date">Aug 22 — Nov 7, 2026</span></div>
+              <div class="chart-wrap">
+                <div class="y-axis"><span>12</span><span>9</span><span>6</span><span>3</span><span>0</span></div>
+                <svg class="chart" viewBox="0 0 760 260" role="img" aria-label="Illustrative weekly wastewater trend with a recent increase">
+                  <defs><linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#c8461f" stop-opacity=".2"/><stop offset="1" stop-color="#c8461f" stop-opacity="0"/></linearGradient></defs>
+                  <g class="gridlines"><path d="M0 24H760M0 78H760M0 132H760M0 186H760M0 240H760"/></g>
+                  <path id="areaPath" d="M0,206 L69,193 L138,199 L207,177 L276,183 L345,163 L414,171 L483,143 L552,150 L621,115 L690,76 L760,58 L760,240 L0,240 Z" fill="url(#areaGradient)"/>
+                  <path id="linePath" d="M0,206 L69,193 L138,199 L207,177 L276,183 L345,163 L414,171 L483,143 L552,150 L621,115 L690,76 L760,58" fill="none" stroke="#c8461f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <g id="dataPoints" fill="#fff" stroke="#c8461f" stroke-width="2"><circle cx="0" cy="206" r="4"/><circle cx="69" cy="193" r="4"/><circle cx="138" cy="199" r="4"/><circle cx="207" cy="177" r="4"/><circle cx="276" cy="183" r="4"/><circle cx="345" cy="163" r="4"/><circle cx="414" cy="171" r="4"/><circle cx="483" cy="143" r="4"/><circle cx="552" cy="150" r="4"/><circle cx="621" cy="115" r="4"/><circle cx="690" cy="76" r="4"/><circle cx="760" cy="58" r="5"/></g>
+                </svg>
+                <div class="chart-unavailable" id="chartUnavailable" hidden><b>Coverage validation in progress</b><span>Comparable public state-level data are not yet enabled for this pathogen.</span></div>
+                <div class="x-axis"><span>Aug 22</span><span>Sep 12</span><span>Oct 3</span><span>Oct 24</span><span>Nov 7</span></div>
+              </div>
+              <div class="chart-callout"><span class="callout-mark">↗</span><div class="callout-content"><p><b>Observed change</b><span>Recent measurements are higher than the prior 7-day period. This is not a statement about transmission, severity, or what will happen next.</span></p><button class="text-button" id="sourceLink">View source details</button></div></div>
+            </article>
+
+            <aside class="panel insight-panel">
+              <header class="panel-header"><div><p class="eyebrow">DATA QUALITY</p><h2>Can I compare this?</h2></div><span class="quality-pill">Review context</span></header>
+              <div class="quality-score"><div class="score-ring"><b>76</b><span>/100</span></div><div><b>Usable with caveats</b><p>Coverage and reporting timing affect interpretation.</p></div></div>
+              <ul class="quality-list">
+                <li><span class="status good">✓</span><div><b>Compatible time window</b><small>All series shown weekly</small></div></li>
+                <li><span class="status warn">!</span><div><b>Different measurement methods</b><small>Do not compare values directly</small></div></li>
+                <li><span class="status warn">!</span><div><b>Reporting delay present</b><small>Clinical data lags wastewater</small></div></li>
+              </ul>
+              <button class="secondary full" id="qualityButton">Inspect quality notes</button>
+            </aside>
+          </section>
+
+          <section class="bottom-grid source-only">
+            <article class="panel source-panel"><header class="panel-header"><div><p class="eyebrow">PROVENANCE</p><h2>Where did this come from?</h2></div><button class="text-button" data-go="sources">All sources</button></header><div class="source-row"><span class="source-badge">US</span><div><b>Illustrative national & state surveillance dataset</b><small>Demonstration observations · Retrieved Nov 13, 09:30 ET</small></div><button class="secondary compact" id="metadataButton">Metadata</button></div></article>
+          </section>
+          <footer class="screen-flow"><div class="flow-action flow-action-start"></div><span class="flow-position"><b>01</b> Observe</span><div class="flow-action flow-action-end"><button class="flow-next" data-go="explore"><span class="flow-desktop">Continue to Data explorer →</span><span class="flow-mobile">Next: Explore →</span></button></div></footer>
+        </section>
+
+        <section class="view alternate-view" id="explore"><div class="page-head"><div><p class="eyebrow">DATA EXPLORER · STEP 02</p><h1>Compare compatible observations</h1><p class="lede">Choose state-level indicators with their measurement context kept in view.</p></div></div><div class="panel compare-workspace"><div class="comparison-controls"><label>Primary region<select id="primaryRegionSelect" data-region-select data-state-only data-default="California"></select></label><span>compared with</span><label>Secondary region<select id="secondaryRegionSelect" data-region-select data-state-only data-default="Texas"></select></label><button class="primary" id="runCompare">Compare series</button></div><div class="comparison-result" id="compareOutput" aria-live="polite"><div class="comparison-result-head"><div><p class="eyebrow">COMPARISON SNAPSHOT</p><h2><span id="comparisonPrimary">California</span> <i>vs</i> <span id="comparisonSecondary">Texas</span></h2></div><span class="quality-pill">Illustrative UI data</span></div><div class="comparison-summary"><article><span>EXAMPLE LATEST ACTIVITY</span><b>8.4 <small>vs 5.9</small></b><p>Standardized activity index</p></article><article><span>EXAMPLE 12-WEEK DIRECTION</span><b class="comparison-up">↑ 18% <small>vs ↑ 7%</small></b><p>Change from each prior period</p></article><article><span>COMPARABILITY</span><b>Aligned</b><p>Same fictional weekly measure</p></article></div><div class="comparison-chart" aria-label="Illustrative twelve-week comparison chart"><div class="comparison-legend"><span><i class="comparison-line primary-line"></i><b id="comparisonPrimaryLegend">California</b></span><span><i class="comparison-line secondary-line"></i><b id="comparisonSecondaryLegend">Texas</b></span><em>Example only · Last 12 weeks</em></div><svg viewBox="0 0 760 190" role="img" aria-label="Two illustrative comparison lines over twelve weeks" preserveAspectRatio="none"><g class="comparison-grid"><path d="M0 22H760M0 74H760M0 126H760M0 178H760"/></g><polyline class="comparison-series secondary-series" points="0,145 69,140 138,149 207,128 276,135 345,116 414,125 483,103 552,109 621,89 690,98 760,80"/><polyline class="comparison-series primary-series" points="0,151 69,135 138,140 207,112 276,122 345,99 414,108 483,75 552,86 621,58 690,67 760,40"/></svg><div class="comparison-axis"><span>Aug 22</span><span>Sep 12</span><span>Oct 3</span><span>Oct 24</span><span>Nov 7</span></div></div><div class="comparison-context"><span>✓ Same illustrative indicator</span><span>✓ Same fictional weekly period</span><span>✦ No live surveillance data</span></div></div></div><footer class="screen-flow"><div class="flow-action flow-action-start"><button class="flow-back" data-go="dashboard"><span class="flow-desktop">← Dashboard</span><span class="flow-mobile">← Observe</span></button></div><span class="flow-position"><b>02</b> Explore</span><div class="flow-action flow-action-end"><button class="flow-next" data-go="sources"><span class="flow-desktop">Continue to Sources & quality →</span><span class="flow-mobile">Next: Verify →</span></button></div></footer></section>
+
+        <section class="view alternate-view" id="sources"><div class="page-head"><div><p class="eyebrow">DATA QUALITY & PROVENANCE · STEP 03</p><h1>Evidence you can inspect</h1><p class="lede">Each observation keeps its provider, retrieval date, method, and known limitations attached.</p></div></div><div class="panel source-table"><div class="table-heading"><span>Dataset</span><span>Coverage</span><span>Retrieved</span><span>Quality</span></div><div class="table-row"><b>Wastewater surveillance</b><span>National & state demo</span><span>Nov 13, 09:30 ET</span><span class="quality-pill">2 caveats</span></div><div class="table-row"><b>Clinical testing indicators</b><span>National & state demo</span><span>Nov 11, 13:00 ET</span><span class="quality-pill">1 caveat</span></div><div class="table-row"><b>Hospital admissions</b><span>National & state demo</span><span>Nov 8, 16:30 ET</span><span class="quality-pill">Reporting delay</span></div></div><section class="notice provenance-note"><span class="notice-icon">i</span><p><b>Comparability rule:</b> matching time periods do not make different indicator values equivalent. Review unit and collection method before comparing.</p></section><footer class="screen-flow"><div class="flow-action flow-action-start"><button class="flow-back" data-go="explore"><span class="flow-desktop">← Data explorer</span><span class="flow-mobile">← Explore</span></button></div><span class="flow-position"><b>03</b> Verify</span><div class="flow-action flow-action-end"><button class="flow-next" data-go="lab"><span class="flow-desktop">Continue to Early Warning Lab →</span><span class="flow-mobile">Next: Analyze →</span></button></div></footer></section>
+
+        <section class="view alternate-view" id="lab">
+          <div class="page-head"><div><p class="eyebrow">EARLY WARNING LAB · STEP 04 · PHASE 2</p><h1>Investigate patterns, not predictions</h1><p class="lede">Explore documented relationships among compatible signals. Results are exploratory and never a causal finding.</p></div><button class="secondary" id="labReset">Reset analysis</button></div>
+          <section class="notice lab-notice"><span class="notice-icon">i</span><p><b>Exploratory statistic.</b> A lag correlation can reveal a pattern in the selected demonstration data; it cannot explain why a pattern exists or forecast a health outcome.</p></section>
+          <div class="lab-grid">
+            <article class="panel analysis-controls"><header class="panel-header"><div><p class="eyebrow">ANALYSIS SETUP</p><h2>Compare two series</h2></div></header><label>Leading indicator<select id="leadSeries"><option value="wastewater">Wastewater activity</option><option value="positivity">Test positivity</option></select></label><label>Following indicator<select id="followSeries"><option value="admissions">Hospital admissions</option><option value="positivity">Test positivity</option></select></label><label class="lag-control">Offset window <output id="lagValue">7 days</output><input id="lagRange" type="range" min="0" max="21" step="7" value="7" /><span><i>0 days</i><i>21 days</i></span></label><div class="method-box"><b>Method: Pearson correlation</b><p>Weekly values standardized within each selected series. Analysis uses 12 synthetic observations.</p><button class="text-button" id="methodButton">Review assumptions</button></div><button class="primary full" id="runAnalysis">Run exploratory analysis <span>→</span></button></article>
+            <article class="panel analysis-result"><header class="panel-header"><div><p class="eyebrow">LAG EXPLORER</p><h2 id="analysisTitle">Wastewater → admissions</h2></div><span class="quality-pill">Synthetic demo</span></header><div class="analysis-chart"><div class="lag-labels"><span>0D</span><span>7D</span><span>14D</span><span>21D</span></div><div class="lag-bars"><button data-lag="0"><i style="height:34%"></i><b>0.28</b></button><button class="selected" data-lag="7"><i style="height:79%"></i><b>0.71</b></button><button data-lag="14"><i style="height:54%"></i><b>0.49</b></button><button data-lag="21"><i style="height:27%"></i><b>0.19</b></button></div></div><div class="result-readout"><span class="result-number" id="correlationValue">r = 0.71</span><div><b id="resultHeading">Highest observed alignment at 7 days</b><p id="resultCopy">In this synthetic example, the wastewater series rises before the admission series. The sample is too limited to support a conclusion.</p></div></div><div class="result-actions"><button class="secondary" id="saveAnalysis">☆ Save analysis</button></div></article>
+          </div>
+          <section class="panel anomalies"><header class="panel-header"><div><p class="eyebrow">ANOMALY EXPLORATION</p><h2>Candidate changes to inspect</h2></div><button class="text-button" id="ruleButton">View detection rule</button></header><div class="anomaly-list"><article><span class="anomaly-date">OCT<br><b>24</b></span><div><b>Wastewater activity exceeds the 8-week baseline</b><p>Value is 1.8 standard deviations above the trailing baseline. Coverage: 11 of 12 sites.</p></div><span class="status warn">!</span></article><article><span class="anomaly-date">NOV<br><b>07</b></span><div><b>Clinical reporting completeness changed</b><p>One reporting stream is delayed. Apparent change may reflect reporting rather than conditions.</p></div><span class="status warn">!</span></article></div></section>
+          <footer class="screen-flow"><div class="flow-action flow-action-start"><button class="flow-back" data-go="sources"><span class="flow-desktop">← Sources & quality</span><span class="flow-mobile">← Verify</span></button></div><span class="flow-position"><b>04</b> Analyze</span><div class="flow-action flow-action-end"><button class="flow-next" data-go="plans"><span class="flow-desktop">Continue to Preparedness plans →</span><span class="flow-mobile">Next: Plan →</span></button></div></footer>
+        </section>
+        <section class="view alternate-view" id="plans">
+          <div class="page-head"><div><p class="eyebrow">PREPAREDNESS PLANS · STEP 05 · PHASE 3</p><h1>Make a proportionate, human-approved plan</h1><p class="lede">Use observations as context. Actions remain recommendations until a named person approves them.</p></div><button class="secondary" id="loadPlan">Load sample plan</button></div>
+          <section class="notice plan-notice"><span class="notice-icon">i</span><p><b>Not medical advice.</b> This workspace supports organizational preparedness, not individual diagnosis or treatment decisions.</p></section>
+          <div class="plan-grid">
+            <article class="panel plan-setup"><header class="panel-header"><div><p class="eyebrow">PLAN CONTEXT</p><h2>Organization & scenario</h2></div></header><label>Organization name<input id="orgName" type="text" placeholder="e.g., Northside Community Center" /></label><label>Scenario<select id="scenarioSelect"><option>Monitor an emerging environmental signal</option><option>Prepare for sustained indicator increase</option><option>Review a reporting disruption</option></select></label><label>Plan owner<input id="planOwner" type="text" placeholder="Name or role" /></label><div class="threshold-box"><div><b>Review threshold</b><span id="thresholdLabel">Two consecutive weekly increases</span></div><input id="thresholdRange" type="range" min="1" max="3" step="1" value="2" /><small>Sets a reminder to review; it does not trigger an action automatically.</small></div></article>
+            <article class="panel action-builder"><header class="panel-header"><div><p class="eyebrow">SELECTED OPTIONS</p><h2>Preparedness actions</h2></div><span class="quality-pill">Human review required</span></header><label class="action-option"><input type="checkbox" checked value="Review ventilation and supplies" /><span><b>Review ventilation and supplies</b><small>Confirm existing inventory and facility contacts.</small></span></label><label class="action-option"><input type="checkbox" checked value="Prepare staff communications" /><span><b>Prepare staff communications</b><small>Draft source-linked, plain-language messaging.</small></span></label><label class="action-option"><input type="checkbox" value="Schedule leadership check-in" /><span><b>Schedule leadership check-in</b><small>Agree who reviews evidence and when.</small></span></label><label class="action-option"><input type="checkbox" value="Coordinate with local health partners" /><span><b>Coordinate with local health partners</b><small>Verify authoritative guidance before sharing.</small></span></label></article>
+          </div>
+          <section class="panel approval-panel"><div><div><p class="eyebrow">HUMAN APPROVAL</p><h2 id="planStatus">Draft · awaiting reviewer</h2><p id="planSummary">Choose actions and add the person responsible before sharing this plan.</p></div><div class="approval-actions"><button class="secondary" id="previewPlan">Preview plan</button><button class="primary" id="approvePlan">Mark reviewed & export <span>→</span></button></div></div></section>
+          <footer class="screen-flow"><div class="flow-action flow-action-start"><button class="flow-back" data-go="lab"><span class="flow-desktop">← Early Warning Lab</span><span class="flow-mobile">← Analyze</span></button></div><span class="flow-position"><b>05</b> Plan</span><div class="flow-action flow-action-end"><button class="flow-next" data-go="dashboard"><span class="flow-desktop">Return to Dashboard ↺</span><span class="flow-mobile">Return: Observe ↺</span></button></div></footer>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="modalBackdrop" hidden></div>
+    <dialog id="modal"><button class="close-modal" id="closeModal" aria-label="Close">×</button><div id="modalContent"></div></dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
