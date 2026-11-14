@@ -14,7 +14,7 @@
     const url = new URL(ENDPOINT);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12_000);
+    const timeout = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(url, { mode: "cors", cache: "no-store", signal: controller.signal });
       if (!response.ok) throw new Error(`CDC data request failed (${response.status})`);
@@ -29,7 +29,7 @@
     }
   };
 
-  const escapeSocrata = value => String(value).replaceAll("'", "''");
+  const escapeSocrata = value => String(value).replace(/'/g, "''");
   const getSnapshot = async () => {
     if (snapshot) return snapshot;
     const response = await fetch(SNAPSHOT, { cache: "no-store" });

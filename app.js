@@ -75,13 +75,13 @@ async function loadLiveData() {
   $("#connectionText").textContent = "Refreshing source"; setLiveLoading();
   const displayTimeout = setTimeout(() => {
     if (requestId === liveRequestId) setLiveUnavailable("The live source is taking longer than expected");
-  }, 12_500);
+  }, 12500);
   try {
     const series = await window.SpreadSignalData.getSeries({ pathogen, region, limit: activeRange });
     if (requestId !== liveRequestId) return;
     clearTimeout(displayTimeout);
     activeSeries = series;
-    const latest = series.at(-1), previous = series.at(-2), change = latest.value - previous.value, direction = change > 0 ? "↑" : change < 0 ? "↓" : "→";
+    const latest = series[series.length - 1], previous = series[series.length - 2], change = latest.value - previous.value, direction = change > 0 ? "↑" : change < 0 ? "↓" : "→";
     const title = `${pathogen === "COVID-19" ? "SARS-CoV-2" : pathogen} wastewater viral activity`;
     $("#chartHeading").textContent = title; $("#chartSubline").textContent = "Weekly median wastewater viral activity level · CDC NWSS";
     $("#wastewaterMetricTitle").textContent = title; $("#wastewaterMetricValue").textContent = formatValue(latest.value); $("#wastewaterMetricUnit").textContent = "viral activity level";
@@ -128,7 +128,7 @@ async function runComparison() {
     const firstSeries = paired.map(([item]) => item), secondSeries = paired.map(([, item]) => item), values = [...firstSeries, ...secondSeries].map(item => item.value), min = Math.min(...values), max = Math.max(...values);
     $("#comparisonPrimaryLegend").textContent = primary; $("#comparisonSecondaryLegend").textContent = secondary;
     $("#comparisonPrimarySeries").setAttribute("points", comparisonPoints(firstSeries, min, max)); $("#comparisonSecondarySeries").setAttribute("points", comparisonPoints(secondSeries, min, max));
-    const latestFirst = firstSeries.at(-1), latestSecond = secondSeries.at(-1), firstChange = latestFirst.value - firstSeries.at(-2).value, secondChange = latestSecond.value - secondSeries.at(-2).value;
+    const latestFirst = firstSeries[firstSeries.length - 1], latestSecond = secondSeries[secondSeries.length - 1], firstChange = latestFirst.value - firstSeries[firstSeries.length - 2].value, secondChange = latestSecond.value - secondSeries[secondSeries.length - 2].value;
     $("#comparisonLatest").innerHTML = `${formatValue(latestFirst.value)} <small>vs ${formatValue(latestSecond.value)}</small>`; $("#comparisonLatestNote").textContent = `${primary} vs ${secondary} · week ending ${formatShortDate(latestFirst.weekEnd)}`;
     $("#comparisonChange").innerHTML = `${firstChange >= 0 ? "↑" : "↓"} ${formatValue(Math.abs(firstChange))} <small>vs ${secondChange >= 0 ? "↑" : "↓"} ${formatValue(Math.abs(secondChange))}</small>`; $("#comparisonChangeNote").textContent = "Change from each state’s prior reported week.";
     $("#comparisonQuality").textContent = "Comparable"; $("#comparisonQualityNote").textContent = `Same CDC ${pathogen} wastewater measure; ${paired.length} overlapping weeks.`;
@@ -146,7 +146,7 @@ $("#compareButton").addEventListener("click", () => { showView("explore"); });
 $("#runCompare").addEventListener("click", runComparison);
 $("#aboutButton").addEventListener("click", () => openModal("About SpreadSignal", `<p>SpreadSignal is a public, source-linked workspace for reading U.S. outbreak surveillance signals with their limitations in view.</p><p>This release currently supports weekly CDC wastewater activity for COVID-19, Influenza A, and RSV. It is not medical advice, a diagnosis, or a forecast.</p>`));
 $("#closeModal").addEventListener("click", closeModal); backdrop.addEventListener("click", closeModal);
-$("#exportButton").addEventListener("click", () => { if (!activeSeries.length) { toast("Live data is not available to export"); return; } const rows = ["pathogen,region,week_end,viral_activity_level,reporting_sites,source", ...activeSeries.map(row => [$("#pathogenSelect").value, $("#regionSelect").value, row.weekEnd, row.value, row.sites, "CDC National Wastewater Surveillance System"].map(value => `\"${String(value).replaceAll("\"", "\"\"")}\"`).join(","))]; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.join("\n")], {type:"text/csv"})); a.download = "spreadsignal-cdc-wastewater.csv"; a.click(); URL.revokeObjectURL(a.href); toast("CDC source data exported"); });
+$("#exportButton").addEventListener("click", () => { if (!activeSeries.length) { toast("Live data is not available to export"); return; } const rows = ["pathogen,region,week_end,viral_activity_level,reporting_sites,source", ...activeSeries.map(row => [$("#pathogenSelect").value, $("#regionSelect").value, row.weekEnd, row.value, row.sites, "CDC National Wastewater Surveillance System"].map(value => `\"${String(value).replace(/\"/g, "\"\"")}\"`).join(","))]; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.join("\n")], {type:"text/csv"})); a.download = "spreadsignal-cdc-wastewater.csv"; a.click(); URL.revokeObjectURL(a.href); toast("CDC source data exported"); });
 $$('.definition').forEach(button => button.addEventListener('click', () => openModal("Indicator definition", `<p><strong>${$("#chartHeading").textContent}</strong></p><p>This view displays a CDC weekly wastewater viral activity level. It is a community-level surveillance signal, not a diagnosis, individual risk measure, or forecast.</p>`)));
 $("#reviewSourceButton").addEventListener("click", () => showView("dashboard"));
 const thresholdLabels = {1:"One weekly increase",2:"Two consecutive weekly increases",3:"Three consecutive weekly increases"};
