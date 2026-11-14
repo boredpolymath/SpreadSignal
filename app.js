@@ -72,6 +72,7 @@ async function loadLiveData() {
   const region = $("#regionSelect").value, pathogen = $("#pathogenSelect").value;
   $("#regionTitle").textContent = region; $("#datasetStatus").textContent = "Refreshing CDC data"; $("#datasetUpdated").textContent = `Loading ${rangeLabels[activeRange]} of weekly records`;
   $("#connectionText").textContent = "Refreshing source"; setLiveLoading();
+  loadCompanionSignals(region, pathogen);
   const displayTimeout = setTimeout(() => {
     if (requestId === liveRequestId) setLiveUnavailable("The live source is taking longer than expected");
   }, 12500);
@@ -105,8 +106,72 @@ async function loadLiveData() {
   }
 }
 
+let signalRequestId = 0;
+let availableReportedCases = [];
+const signalIds = { hospital: ["hospitalStatus", "hospitalValue", "hospitalUnit", "hospitalDetail", "hospitalFoot"], emergency: ["emergencyStatus", "emergencyValue", null, "emergencyDetail", "emergencyFoot"], reported: ["reportedStatus", "reportedValue", null, "reportedDetail", "reportedFoot"] };
+function setSignalLoading(name, message) {
+  const [status, value, unit, detail, foot] = signalIds[name];
+  $("#" + status).className = "signal-status"; $("#" + status).textContent = "Refreshing";
+  $("#" + value).textContent = "—"; if (unit) $("#" + unit).textContent = "";
+  $("#" + detail).textContent = message; $("#" + foot).textContent = "Live CDC source";
+}
+function setSignalUnavailable(name, message) {
+  const [status, value, unit, detail, foot] = signalIds[name];
+  $("#" + status).className = "signal-status unavailable"; $("#" + status).textContent = "Unavailable";
+  $("#" + value).textContent = "—"; if (unit) $("#" + unit).textContent = "";
+  $("#" + detail).textContent = message; $("#" + foot).textContent = "No substitute value is shown";
+}
+function renderReportedCase(item) {
+  $("#reportedStatus").className = "signal-status"; $("#reportedStatus").textContent = "Provisional";
+  $("#reportedValue").textContent = formatValue(item.cases);
+  $("#reportedDetail").textContent = `MMWR week ${item.week}, ${item.year} · ${formatValue(item.yearToDate)} reported year to date.`;
+  $("#reportedFoot").textContent = "CDC NNDSS weekly reports · subject to revision";
+}
+async function loadCompanionSignals(region, pathogen) {
+  const requestId = ++signalRequestId;
+  setSignalLoading("hospital", "Loading the CDC hospital admission rate.");
+  setSignalLoading("emergency", "Loading the CDC state activity level.");
+  setSignalLoading("reported", "Checking CDC’s current weekly reports.");
+  const hospital = region === "United States" ? Promise.resolve({ status: "rejected", reason: new Error("Select a state to view this CDC state-level hospital measure") }) : window.SpreadSignalData.getHospitalImpact({ pathogen, region }).then(value => ({ status: "fulfilled", value }), reason => ({ status: "rejected", reason }));
+  const emergency = region === "United States" ? Promise.resolve({ status: "rejected", reason: new Error("Select a state to view this CDC state-level emergency-department measure") }) : window.SpreadSignalData.getEmergencyActivity({ region }).then(value => ({ status: "fulfilled", value }), reason => ({ status: "rejected", reason }));
+  const reports = Promise.all(window.SpreadSignalData.reportedConditions.map(condition => window.SpreadSignalData.getReportedCases({ region, condition }).then(value => ({ status: "fulfilled", value }), reason => ({ status: "rejected", reason }))));
+  const [hospitalResult, emergencyResult, reportResults] = await Promise.all([hospital, emergency, reports]);
+  if (requestId !== signalRequestId) return;
+  if (hospitalResult.status === "fulfilled") {
+    const item = hospitalResult.value;
+    $("#hospitalStatus").className = "signal-status"; $("#hospitalStatus").textContent = item.level;
+    $("#hospitalTitle").textContent = `${pathogen === "COVID-19" ? "COVID-19" : pathogen} hospital admissions`;
+    $("#hospitalValue").textContent = formatValue(item.rate); $("#hospitalUnit").textContent = "per 100k";
+    $("#hospitalDetail").textContent = `Week ending ${formatShortDate(item.weekEnd)} · ${formatValue(item.completeness)}% of hospitals reporting.`;
+    $("#hospitalFoot").textContent = "CDC NHSN weekly admissions rate";
+  } else setSignalUnavailable("hospital", hospitalResult.reason.message);
+  if (emergencyResult.status === "fulfilled") {
+    const item = emergencyResult.value;
+    $("#emergencyStatus").className = "signal-status"; $("#emergencyStatus").textContent = item.level;
+    $("#emergencyValue").textContent = item.level;
+    $("#emergencyDetail").textContent = `Week ending ${formatShortDate(item.weekEnd)} · respiratory syndromes seen in emergency departments.`;
+    $("#emergencyFoot").textContent = "CDC state activity level · not pathogen-specific";
+  } else setSignalUnavailable("emergency", emergencyResult.reason.message);
+  availableReportedCases = reportResults.filter(result => result.status === "fulfilled").map(result => result.value);
+  const conditionSelect = $("#reportedCondition");
+  if (!availableReportedCases.length) {
+    conditionSelect.innerHTML = "<option>No current conditions available</option>"; conditionSelect.disabled = true;
+    setSignalUnavailable("reported", "CDC does not currently provide one of the supported reportable-condition series for this selection");
+    return;
+  }
+  const previous = conditionSelect.value;
+  conditionSelect.innerHTML = availableReportedCases.map(item => `<option value="${item.condition}">${item.condition}</option>`).join("");
+  conditionSelect.disabled = false;
+  conditionSelect.value = availableReportedCases.some(item => item.condition === previous) ? previous : availableReportedCases[0].condition;
+  renderReportedCase(availableReportedCases.find(item => item.condition === conditionSelect.value));
+}
+
 $("#regionSelect").addEventListener("change", loadLiveData);
 $("#pathogenSelect").addEventListener("change", loadLiveData);
+$("#reportedCondition").addEventListener("change", () => {
+  const item = availableReportedCases.find(result => result.condition === $("#reportedCondition").value);
+  if (item) renderReportedCase(item);
+});
 $$('[data-range]').forEach(button => button.addEventListener('click', () => {
   activeRange = Number(button.dataset.range);
   $$('[data-range]').forEach(control => { const active = control === button; control.classList.toggle("active", active); control.setAttribute("aria-pressed", String(active)); });
@@ -146,7 +211,7 @@ $("#metadataButton").addEventListener("click", () => openModal("Dataset metadata
 $("#sourceLink").addEventListener("click", () => showView("sources"));
 $("#compareButton").addEventListener("click", () => { showView("explore"); });
 $("#runCompare").addEventListener("click", runComparison);
-$("#aboutButton").addEventListener("click", () => openModal("About SpreadSignal", `<p>SpreadSignal is a public, source-linked workspace for reading U.S. outbreak surveillance signals with their limitations in view.</p><p>This release currently supports weekly CDC wastewater activity for COVID-19, Influenza A, and RSV. It is not medical advice, a diagnosis, or a forecast.</p>`));
+$("#aboutButton").addEventListener("click", () => openModal("About SpreadSignal", `<p>SpreadSignal is a public, source-linked workspace for reading U.S. outbreak surveillance signals with their limitations in view.</p><p>This release includes CDC wastewater activity, hospital admissions, emergency-department activity, and provisional reported cases. It is not medical advice, a diagnosis, or a forecast.</p>`));
 $("#closeModal").addEventListener("click", closeModal); backdrop.addEventListener("click", closeModal);
 $("#exportButton").addEventListener("click", () => { if (!activeSeries.length) { toast("Live data is not available to export"); return; } const rows = ["pathogen,region,week_end,viral_activity_level,reporting_sites,source", ...activeSeries.map(row => [$("#pathogenSelect").value, $("#regionSelect").value, row.weekEnd, row.value, row.sites, "CDC National Wastewater Surveillance System"].map(value => `\"${String(value).replace(/\"/g, "\"\"")}\"`).join(","))]; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.join("\n")], {type:"text/csv"})); a.download = "spreadsignal-cdc-wastewater.csv"; a.click(); URL.revokeObjectURL(a.href); toast("CDC source data exported"); });
 $$('.definition').forEach(button => button.addEventListener('click', () => openModal("Indicator definition", `<p><strong>${$("#chartHeading").textContent}</strong></p><p>This view displays a CDC weekly wastewater viral activity level. It is a community-level surveillance signal, not a diagnosis, individual risk measure, or forecast.</p>`)));
