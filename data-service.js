@@ -19,7 +19,7 @@
   };
 
   const escapeSocrata = value => String(value).replaceAll("'", "''");
-  const seriesQuery = (target, region) => {
+  const seriesQuery = (target, region, limit) => {
     const where = [`pathogen_target='${escapeSocrata(target)}'`];
     if (region !== "United States") where.push(`state_territory='${escapeSocrata(region)}'`);
     return {
@@ -27,16 +27,16 @@
       "$where": where.join(" AND "),
       "$group": "week_end",
       "$order": "week_end DESC",
-      "$limit": "12"
+      "$limit": String(limit)
     };
   };
 
-  const getSeries = async ({ pathogen, region }) => {
+  const getSeries = async ({ pathogen, region, limit = 12 }) => {
     const target = TARGETS[pathogen];
     if (!target) throw new Error("This pathogen is not available in the public release");
-    const key = `${target}|${region}`;
+    const key = `${target}|${region}|${limit}`;
     if (cache.has(key)) return cache.get(key);
-    const rows = await query(seriesQuery(target, region));
+    const rows = await query(seriesQuery(target, region, limit));
     const series = rows
       .map(row => ({ weekEnd: row.week_end, value: Number(row.value), sites: Number(row.reporting_sites), updated: row.date_updated }))
       .filter(row => row.weekEnd && Number.isFinite(row.value) && row.sites > 0)

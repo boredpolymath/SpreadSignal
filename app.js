@@ -14,7 +14,7 @@ function showView(id) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  const title = {dashboard:"Regional dashboard",explore:"Data explorer",sources:"Sources & quality",lab:"Early warning lab",plans:"Preparedness plans"}[id];
+  const title = {dashboard:"Regional dashboard",explore:"Data explorer",sources:"Sources & quality",plans:"Preparedness plans"}[id];
   $("#crumbTitle").textContent = title;
   window.scrollTo({top:0,behavior:"auto"});
   const heading = $(`#${id} h1`);
@@ -26,6 +26,8 @@ $$('[data-go]').forEach(btn => btn.addEventListener('click', () => showView(btn.
 $$('.metric-select').forEach(button => button.addEventListener('click', loadLiveData));
 
 let activeSeries = [];
+let activeRange = 12;
+const rangeLabels = {4:"4 weeks",12:"12 weeks",26:"6 months",52:"1 year"};
 const formatDate = value => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 const formatShortDate = value => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 const formatValue = value => Number(value).toLocaleString("en-US", { maximumFractionDigits: 1 });
@@ -56,14 +58,21 @@ function setLiveUnavailable(message) {
   $("#latestWeek").textContent = "—"; $("#sourceTrend").innerHTML = "Unavailable <span>No substitute data are shown</span>";
   $("#chartUnavailable").hidden = false; $(".chart-wrap").classList.add("is-unavailable"); $(".chart-legend").classList.add("is-unavailable");
   $("#chartUnavailable").innerHTML = `<b>Live data unavailable</b><span>${message}. SpreadSignal does not replace a failed source with fallback values.</span>`;
+  $("#chartDateRange").textContent = "No live date range available";
+}
+
+function setLiveLoading() {
+  $("#chartUnavailable").hidden = false; $(".chart-wrap").classList.add("is-unavailable"); $(".chart-legend").classList.add("is-unavailable");
+  $("#chartUnavailable").innerHTML = `<b>Loading live CDC data</b><span>Retrieving the latest ${rangeLabels[activeRange]} of reported weekly activity.</span>`;
+  $("#chartDateRange").textContent = "Loading live weekly data";
 }
 
 async function loadLiveData() {
   const region = $("#regionSelect").value, pathogen = $("#pathogenSelect").value;
-  $("#regionTitle").textContent = region; $("#datasetStatus").textContent = "Refreshing CDC data"; $("#datasetUpdated").textContent = "Loading the latest weekly records";
-  $("#connectionText").textContent = "Refreshing source"; $("#chartUnavailable").hidden = true; $(".chart-wrap").classList.remove("is-unavailable"); $(".chart-legend").classList.remove("is-unavailable");
+  $("#regionTitle").textContent = region; $("#datasetStatus").textContent = "Refreshing CDC data"; $("#datasetUpdated").textContent = `Loading ${rangeLabels[activeRange]} of weekly records`;
+  $("#connectionText").textContent = "Refreshing source"; setLiveLoading();
   try {
-    const series = await window.SpreadSignalData.getSeries({ pathogen, region });
+    const series = await window.SpreadSignalData.getSeries({ pathogen, region, limit: activeRange });
     activeSeries = series;
     const latest = series.at(-1), previous = series.at(-2), change = latest.value - previous.value, direction = change > 0 ? "↑" : change < 0 ? "↓" : "→";
     const title = `${pathogen === "COVID-19" ? "SARS-CoV-2" : pathogen} wastewater viral activity`;
@@ -79,12 +88,20 @@ async function loadLiveData() {
     $("#connectionText").textContent = "Live CDC source"; $("#lastSync").textContent = latest.updated || formatDate(latest.weekEnd);
     $("#provenanceMeta").textContent = `${pathogen} · ${region} · week ending ${formatDate(latest.weekEnd)}`; $("#sourceRetrieved").textContent = latest.updated || formatDate(latest.weekEnd);
     renderLiveChart(series);
+    $("#chartUnavailable").hidden = true; $(".chart-wrap").classList.remove("is-unavailable"); $(".chart-legend").classList.remove("is-unavailable");
+    $("#chartDateRange").textContent = `${formatShortDate(series[0].weekEnd)} — ${formatShortDate(latest.weekEnd)}`;
     $(".chart-callout p").innerHTML = `<b>Observed weekly change</b><span>The latest reported value is ${formatValue(Math.abs(change))} ${change === 0 ? "unchanged from" : `${change > 0 ? "higher than" : "lower than"}`} the prior reported week. This is not a forecast or measure of individual risk.</span>`;
   } catch (error) { activeSeries = []; setLiveUnavailable(error.message); }
 }
 
 $("#regionSelect").addEventListener("change", loadLiveData);
 $("#pathogenSelect").addEventListener("change", loadLiveData);
+$$('[data-range]').forEach(button => button.addEventListener('click', () => {
+  activeRange = Number(button.dataset.range);
+  $$('[data-range]').forEach(control => { const active = control === button; control.classList.toggle("active", active); control.setAttribute("aria-pressed", String(active)); });
+  $("#rangeAnnouncement").textContent = `Showing the last ${rangeLabels[activeRange]} of reported weekly data.`;
+  loadLiveData();
+}));
 
 function comparisonPoints(series, min, max) {
   const span = Math.max(max - min, 1);
@@ -94,9 +111,9 @@ async function runComparison() {
   const primary = $("#primaryRegionSelect").value, secondary = $("#secondaryRegionSelect").value, pathogen = $("#pathogenSelect").value;
   $("#comparisonPrimary").textContent = primary; $("#comparisonSecondary").textContent = secondary; $("#comparisonStatus").textContent = "Loading CDC data";
   try {
-    const [first, second] = await Promise.all([window.SpreadSignalData.getSeries({ pathogen, region: primary }), window.SpreadSignalData.getSeries({ pathogen, region: secondary })]);
+    const [first, second] = await Promise.all([window.SpreadSignalData.getSeries({ pathogen, region: primary, limit: activeRange }), window.SpreadSignalData.getSeries({ pathogen, region: secondary, limit: activeRange })]);
     const secondByWeek = new Map(second.map(item => [item.weekEnd, item]));
-    const paired = first.map(item => [item, secondByWeek.get(item.weekEnd)]).filter(([, item]) => item).slice(-12);
+    const paired = first.map(item => [item, secondByWeek.get(item.weekEnd)]).filter(([, item]) => item).slice(-activeRange);
     if (paired.length < 2) throw new Error("The selected states do not have enough overlapping weekly data");
     const firstSeries = paired.map(([item]) => item), secondSeries = paired.map(([, item]) => item), values = [...firstSeries, ...secondSeries].map(item => item.value), min = Math.min(...values), max = Math.max(...values);
     $("#comparisonPrimaryLegend").textContent = primary; $("#comparisonSecondaryLegend").textContent = secondary;
