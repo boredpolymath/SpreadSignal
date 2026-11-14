@@ -63,9 +63,8 @@ function setLiveUnavailable(message) {
 }
 
 function setLiveLoading() {
-  $("#chartUnavailable").hidden = false; $(".chart-wrap").classList.add("is-unavailable"); $(".chart-legend").classList.add("is-unavailable");
-  $("#chartUnavailable").innerHTML = `<b>Loading live CDC data</b><span>Retrieving the latest ${rangeLabels[activeRange]} of reported weekly activity.</span>`;
-  $("#chartDateRange").textContent = "Loading live weekly data";
+  $("#chartUnavailable").hidden = true; $(".chart-wrap").classList.remove("is-unavailable"); $(".chart-legend").classList.remove("is-unavailable");
+  $("#chartDateRange").textContent = `Refreshing ${rangeLabels[activeRange]} of live CDC data`;
 }
 
 async function loadLiveData() {
