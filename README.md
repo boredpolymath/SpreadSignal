@@ -47,7 +47,7 @@ Then open [http://localhost:8000](http://localhost:8000).
 
 ## Built with
 
-HTML, CSS, vanilla JavaScript, SVG, the public CDC Socrata API, and a lightweight service worker for the app shell.
+HTML, CSS, vanilla JavaScript, SVG, and the public CDC Socrata API.
 
 ---
 

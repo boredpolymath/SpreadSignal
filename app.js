@@ -27,6 +27,7 @@ $$('.metric-select').forEach(button => button.addEventListener('click', loadLive
 
 let activeSeries = [];
 let activeRange = 12;
+let liveRequestId = 0;
 const rangeLabels = {4:"4 weeks",12:"12 weeks",26:"6 months",52:"1 year"};
 const formatDate = value => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 const formatShortDate = value => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
@@ -68,11 +69,17 @@ function setLiveLoading() {
 }
 
 async function loadLiveData() {
+  const requestId = ++liveRequestId;
   const region = $("#regionSelect").value, pathogen = $("#pathogenSelect").value;
   $("#regionTitle").textContent = region; $("#datasetStatus").textContent = "Refreshing CDC data"; $("#datasetUpdated").textContent = `Loading ${rangeLabels[activeRange]} of weekly records`;
   $("#connectionText").textContent = "Refreshing source"; setLiveLoading();
+  const displayTimeout = setTimeout(() => {
+    if (requestId === liveRequestId) setLiveUnavailable("The live source is taking longer than expected");
+  }, 12_500);
   try {
     const series = await window.SpreadSignalData.getSeries({ pathogen, region, limit: activeRange });
+    if (requestId !== liveRequestId) return;
+    clearTimeout(displayTimeout);
     activeSeries = series;
     const latest = series.at(-1), previous = series.at(-2), change = latest.value - previous.value, direction = change > 0 ? "↑" : change < 0 ? "↓" : "→";
     const title = `${pathogen === "COVID-19" ? "SARS-CoV-2" : pathogen} wastewater viral activity`;
@@ -91,7 +98,10 @@ async function loadLiveData() {
     $("#chartUnavailable").hidden = true; $(".chart-wrap").classList.remove("is-unavailable"); $(".chart-legend").classList.remove("is-unavailable");
     $("#chartDateRange").textContent = `${formatShortDate(series[0].weekEnd)} — ${formatShortDate(latest.weekEnd)}`;
     $(".chart-callout p").innerHTML = `<b>Observed weekly change</b><span>The latest reported value is ${formatValue(Math.abs(change))} ${change === 0 ? "unchanged from" : `${change > 0 ? "higher than" : "lower than"}`} the prior reported week. This is not a forecast or measure of individual risk.</span>`;
-  } catch (error) { activeSeries = []; setLiveUnavailable(error.message); }
+  } catch (error) {
+    if (requestId !== liveRequestId) return;
+    clearTimeout(displayTimeout); activeSeries = []; setLiveUnavailable(error.message);
+  }
 }
 
 $("#regionSelect").addEventListener("change", loadLiveData);
@@ -146,4 +156,4 @@ $("#previewPlan").addEventListener("click", () => { const p = planValues(); cons
 $("#approvePlan").addEventListener("click", () => { const p = planValues(); if (p.owner === "No owner assigned") { toast("Add a plan owner before marking the plan reviewed"); $("#planOwner").focus(); return; } const content = ["SPREADSIGNAL — PREPAREDNESS PLAN", "", `Organization: ${p.org}`, `Scenario: ${p.scenario}`, `Review threshold: ${p.threshold}`, `Plan owner: ${p.owner}`, "Status: Human reviewed", "", "Selected actions:", ...p.actions.map(a => `- ${a}`), "", "Note: This is an organizational planning aid. It is not medical advice and does not trigger actions automatically."].join("\n"); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([content],{type:"text/plain"})); a.download="preparedness-plan.txt"; a.click(); URL.revokeObjectURL(a.href); $("#planStatus").textContent="Reviewed · export created"; $("#planSummary").textContent=`${p.owner} reviewed this plan for ${p.org}.`; toast("Human-reviewed plan exported"); });
 $("#loadPlan").addEventListener("click", () => { $("#orgName").value="Northside Community Center"; $("#planOwner").value="Operations director"; $("#scenarioSelect").value="Prepare for sustained indicator increase"; $("#thresholdRange").value=2; $("#thresholdLabel").textContent=thresholdLabels[2]; $$(".action-option input").forEach((x,i)=>x.checked=i<3); toast("Sample preparedness plan loaded"); });
 loadLiveData();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(registrations => Promise.all(registrations.map(registration => registration.unregister()))).catch(() => {});
