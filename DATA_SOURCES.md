@@ -22,6 +22,6 @@ For each selected state or the United States, SpreadSignal requests up to 12 wee
 
 ## Source access
 
-SpreadSignal publishes a same-origin weekly snapshot generated from the public CDC API at `https://data.cdc.gov/resource/atcp-73re.json`. This lets the dashboard load without a browser-to-CDC cross-site request. The snapshot is refreshed automatically every Friday after the CDC weekly update; if it is unavailable, the app attempts the public CDC endpoint directly. SpreadSignal does not send user identifiers, selected regions, or browsing activity to a SpreadSignal server.
+SpreadSignal requests the public CDC API at `https://data.cdc.gov/resource/atcp-73re.json` first, so the dashboard reflects the CDC's current public release. If CDC's endpoint is unavailable, the app uses a same-origin weekly snapshot generated from that same source. The snapshot is refreshed automatically every Friday after the CDC weekly update. The dashboard labels which source supplied the displayed result, and SpreadSignal does not send user identifiers, selected regions, or browsing activity to a SpreadSignal server.
 
 For the CDC’s methodology and current coverage notes, consult the dataset and the [CDC state/territory wastewater page](https://www.cdc.gov/wastewater/respiratory-viruses/state.html).

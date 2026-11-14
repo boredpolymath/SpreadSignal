@@ -57,19 +57,27 @@
     const key = `${target}|${region}|${limit}`;
     if (cache.has(key)) return cache.get(key);
     let rows;
+    let source;
     try {
-      const published = await getSnapshot();
-      rows = published.rows.filter(row => row.pathogen_target === target && row.state_territory === region).slice(0, limit);
-    } catch {
       rows = await query(seriesQuery(target, region, limit));
+      source = "live";
+    } catch (liveError) {
+      try {
+        const published = await getSnapshot();
+        rows = published.rows.filter(row => row.pathogen_target === target && row.state_territory === region).slice(0, limit);
+        source = "snapshot";
+      } catch {
+        throw liveError;
+      }
     }
     const series = rows
       .map(row => ({ weekEnd: row.week_end, value: Number(row.value), sites: Number(row.reporting_sites), updated: row.date_updated }))
       .filter(row => row.weekEnd && Number.isFinite(row.value) && row.sites > 0)
       .sort((a, b) => a.weekEnd.localeCompare(b.weekEnd));
     if (series.length < 2) throw new Error("CDC does not currently provide enough comparable weeks for this selection");
-    cache.set(key, series);
-    return series;
+    const result = { series, source };
+    cache.set(key, result);
+    return result;
   };
 
   window.SpreadSignalData = {

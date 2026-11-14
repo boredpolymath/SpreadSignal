@@ -76,7 +76,8 @@ async function loadLiveData() {
     if (requestId === liveRequestId) setLiveUnavailable("The live source is taking longer than expected");
   }, 12500);
   try {
-    const series = await window.SpreadSignalData.getSeries({ pathogen, region, limit: activeRange });
+    const data = await window.SpreadSignalData.getSeries({ pathogen, region, limit: activeRange });
+    const { series, source } = data;
     if (requestId !== liveRequestId) return;
     clearTimeout(displayTimeout);
     activeSeries = series;
@@ -91,7 +92,8 @@ async function loadLiveData() {
     $("#pathogenMode").textContent = "CDC wastewater monitoring"; $("#pathogenModeCopy").textContent = `Weekly ${pathogen} wastewater viral activity is available for ${region}.`;
     $(".metric-select", $("[data-indicator='Wastewater concentration']")).setAttribute("aria-label", `Select ${title} for the Trend Explorer`);
     $("#datasetStatus").textContent = "CDC source"; $("#datasetUpdated").textContent = `Latest week: ${formatDate(latest.weekEnd)}`;
-    $("#connectionText").textContent = "Live CDC source"; $("#lastSync").textContent = latest.updated || formatDate(latest.weekEnd);
+    const sourceLabel = source === "live" ? "Live CDC source" : "CDC published snapshot";
+    $("#connectionText").textContent = sourceLabel; $("#lastSync").textContent = latest.updated || formatDate(latest.weekEnd);
     $("#provenanceMeta").textContent = `${pathogen} · ${region} · week ending ${formatDate(latest.weekEnd)}`; $("#sourceRetrieved").textContent = latest.updated || formatDate(latest.weekEnd);
     renderLiveChart(series);
     $("#chartUnavailable").hidden = true; $(".chart-wrap").classList.remove("is-unavailable"); $(".chart-legend").classList.remove("is-unavailable");
@@ -120,7 +122,8 @@ async function runComparison() {
   const primary = $("#primaryRegionSelect").value, secondary = $("#secondaryRegionSelect").value, pathogen = $("#pathogenSelect").value;
   $("#comparisonPrimary").textContent = primary; $("#comparisonSecondary").textContent = secondary; $("#comparisonStatus").textContent = "Loading CDC data";
   try {
-    const [first, second] = await Promise.all([window.SpreadSignalData.getSeries({ pathogen, region: primary, limit: activeRange }), window.SpreadSignalData.getSeries({ pathogen, region: secondary, limit: activeRange })]);
+    const [firstData, secondData] = await Promise.all([window.SpreadSignalData.getSeries({ pathogen, region: primary, limit: activeRange }), window.SpreadSignalData.getSeries({ pathogen, region: secondary, limit: activeRange })]);
+    const first = firstData.series, second = secondData.series;
     const secondByWeek = new Map(second.map(item => [item.weekEnd, item]));
     const paired = first.map(item => [item, secondByWeek.get(item.weekEnd)]).filter(([, item]) => item).slice(-activeRange);
     if (paired.length < 2) throw new Error("The selected states do not have enough overlapping weekly data");
@@ -131,7 +134,7 @@ async function runComparison() {
     $("#comparisonLatest").innerHTML = `${formatValue(latestFirst.value)} <small>vs ${formatValue(latestSecond.value)}</small>`; $("#comparisonLatestNote").textContent = `${primary} vs ${secondary} · week ending ${formatShortDate(latestFirst.weekEnd)}`;
     $("#comparisonChange").innerHTML = `${firstChange >= 0 ? "↑" : "↓"} ${formatValue(Math.abs(firstChange))} <small>vs ${secondChange >= 0 ? "↑" : "↓"} ${formatValue(Math.abs(secondChange))}</small>`; $("#comparisonChangeNote").textContent = "Change from each state’s prior reported week.";
     $("#comparisonQuality").textContent = "Comparable"; $("#comparisonQualityNote").textContent = `Same CDC ${pathogen} wastewater measure; ${paired.length} overlapping weeks.`;
-    $("#comparisonStatus").textContent = "Live CDC data"; $("#comparisonPeriod").textContent = `CDC data · ${paired.length} overlapping weeks`;
+    $("#comparisonStatus").textContent = firstData.source === "live" && secondData.source === "live" ? "Live CDC data" : "CDC published snapshot"; $("#comparisonPeriod").textContent = `CDC data · ${paired.length} overlapping weeks`;
     $$(".comparison-axis span").forEach((element, index, array) => element.textContent = formatShortDate(firstSeries[Math.round(index * (firstSeries.length - 1) / (array.length - 1))].weekEnd));
   } catch (error) {
     $("#comparisonStatus").textContent = "Source unavailable"; $("#comparisonLatest").textContent = "—"; $("#comparisonLatestNote").textContent = error.message; $("#comparisonChange").textContent = "—"; $("#comparisonChangeNote").textContent = "No substitute values are shown."; $("#comparisonPrimarySeries").setAttribute("points", ""); $("#comparisonSecondarySeries").setAttribute("points", "");
