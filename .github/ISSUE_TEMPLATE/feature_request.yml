@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an improvement to SpreadSignal.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        SpreadSignal is evidence-first, exploratory, and human-directed. Please describe how this idea supports those principles.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include sketches, examples, or relevant constraints if helpful.
