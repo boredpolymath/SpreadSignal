@@ -5,8 +5,10 @@
  */
 (() => {
   const ENDPOINT = "https://data.cdc.gov/resource/atcp-73re.json";
+  const SNAPSHOT = "./data/cdc-wastewater.json";
   const TARGETS = { "COVID-19": "SARS-CoV-2", "Influenza A": "Influenza A", RSV: "RSV" };
   const cache = new Map();
+  let snapshot;
 
   const query = async params => {
     const url = new URL(ENDPOINT);
@@ -28,6 +30,15 @@
   };
 
   const escapeSocrata = value => String(value).replaceAll("'", "''");
+  const getSnapshot = async () => {
+    if (snapshot) return snapshot;
+    const response = await fetch(SNAPSHOT, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Published CDC snapshot failed to load (${response.status})`);
+    const body = await response.json();
+    if (!Array.isArray(body.rows)) throw new Error("Published CDC snapshot is invalid");
+    snapshot = body;
+    return snapshot;
+  };
   const seriesQuery = (target, region, limit) => {
     const where = [`pathogen_target='${escapeSocrata(target)}'`];
     if (region !== "United States") where.push(`state_territory='${escapeSocrata(region)}'`);
@@ -45,7 +56,13 @@
     if (!target) throw new Error("This pathogen is not available in the public release");
     const key = `${target}|${region}|${limit}`;
     if (cache.has(key)) return cache.get(key);
-    const rows = await query(seriesQuery(target, region, limit));
+    let rows;
+    try {
+      const published = await getSnapshot();
+      rows = published.rows.filter(row => row.pathogen_target === target && row.state_territory === region).slice(0, limit);
+    } catch {
+      rows = await query(seriesQuery(target, region, limit));
+    }
     const series = rows
       .map(row => ({ weekEnd: row.week_end, value: Number(row.value), sites: Number(row.reporting_sites), updated: row.date_updated }))
       .filter(row => row.weekEnd && Number.isFinite(row.value) && row.sites > 0)

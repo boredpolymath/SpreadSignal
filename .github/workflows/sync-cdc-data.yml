@@ -1,0 +1,46 @@
+name: Refresh CDC wastewater data
+
+on:
+  schedule:
+    - cron: "30 18 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch weekly state and national aggregates
+        run: |
+          mkdir -p data
+          curl --fail --silent --show-error --get 'https://data.cdc.gov/resource/atcp-73re.json' \
+            --data-urlencode '$select=state_territory,pathogen_target,week_end,median(site_wval) as value,count(*) as reporting_sites,max(date_updated) as date_updated' \
+            --data-urlencode '$where=pathogen_target in ("SARS-CoV-2","Influenza A","RSV")' \
+            --data-urlencode '$group=state_territory,pathogen_target,week_end' \
+            --data-urlencode '$order=week_end DESC' \
+            --data-urlencode '$limit=10000' > /tmp/state-rows.json
+          curl --fail --silent --show-error --get 'https://data.cdc.gov/resource/atcp-73re.json' \
+            --data-urlencode '$select=pathogen_target,week_end,median(site_wval) as value,count(*) as reporting_sites,max(date_updated) as date_updated' \
+            --data-urlencode '$where=pathogen_target in ("SARS-CoV-2","Influenza A","RSV")' \
+            --data-urlencode '$group=pathogen_target,week_end' \
+            --data-urlencode '$order=week_end DESC' \
+            --data-urlencode '$limit=1000' > /tmp/national-rows.json
+          node <<'NODE'
+          const fs = require('fs');
+          const states = JSON.parse(fs.readFileSync('/tmp/state-rows.json', 'utf8'));
+          const national = JSON.parse(fs.readFileSync('/tmp/national-rows.json', 'utf8'))
+            .map(row => ({ ...row, state_territory: 'United States' }));
+          const rows = [...states, ...national];
+          if (rows.length < 500) throw new Error(`Unexpectedly small CDC snapshot: ${rows.length} rows`);
+          fs.writeFileSync('data/cdc-wastewater.json', JSON.stringify({ generated_at: new Date().toISOString(), source: 'CDC National Wastewater Surveillance System', rows }));
+          NODE
+      - name: Commit refreshed snapshot
+        run: |
+          git config user.name "spreadsignal-data-bot"
+          git config user.email "actions@github.com"
+          git add data/cdc-wastewater.json
+          git diff --cached --quiet || git commit -m "Refresh CDC wastewater snapshot"
+          git push
