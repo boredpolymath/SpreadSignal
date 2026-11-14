@@ -23,13 +23,17 @@ SpreadSignal organizes outbreak intelligence as a practical workflow:
 ## Built for responsible public-health decisions
 
 - **Evidence first** — every view keeps provenance and limitations close to the data.
-- **Pathogen-aware** — activity, detection, and coverage-validation states are clearly distinguished.
+- **Pathogen-aware** — the release lists only pathogens with an available, comparable public source.
 - **Human-directed** — planning support never replaces human judgment or approval.
 - **Transparent by design** — comparisons preserve the context needed to interpret them responsibly.
 
-## Prototype notice
+## Live public release scope
 
-This repository is an interactive product prototype. Its observations, comparisons, dates, and charts are **synthetic illustrative data** for UI testing only. They do not describe current local conditions, forecast outcomes, or provide medical advice.
+SpreadSignal currently presents live, weekly CDC National Wastewater Surveillance System data for **COVID-19, Influenza A, and RSV** at U.S. national and state level. It intentionally does not list pathogens without an available, comparable public source in this release.
+
+The dashboard and state comparison use the CDC wastewater viral activity dataset directly in the browser. Values may be revised by the source; reporting-site counts describe contributing sites, not population coverage. When the source cannot be reached or does not provide enough comparable data, SpreadSignal shows an unavailable state rather than substitute figures.
+
+Read [DATA_SOURCES.md](DATA_SOURCES.md) before relying on the data. SpreadSignal is not medical advice, a diagnosis, or a forecast.
 
 ## Run locally
 
@@ -43,7 +47,7 @@ Then open [http://localhost:8000](http://localhost:8000).
 
 ## Built with
 
-HTML, CSS, vanilla JavaScript, SVG, and a lightweight service worker for offline-friendly prototype behavior.
+HTML, CSS, vanilla JavaScript, SVG, the public CDC Socrata API, and a lightweight service worker for the app shell.
 
 ---
 
